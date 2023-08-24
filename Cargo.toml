@@ -1,6 +1,6 @@
 [package]
 name = "wei-daemon"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 description = "wei daemon"
 documentation = "https://github.com/zuiyue-com/wei-daemon"
@@ -8,11 +8,16 @@ homepage = "https://github.com/zuiyue-com/wei-daemon"
 license = "MIT OR Apache-2.0"
 build = "build.rs"
 
+[lib]
+name = "wei_daemon"
+path = "src/lib.rs"
+
+
 [build-dependencies]
 winres = "0.1"
 
 [dependencies]
-wei-log = "0.2.0"
+wei-log = "0.2.1"
 tokio = { version = "1.28.1", features = ["full"] }
 winapi = { version = "0.3.9", features = ["winuser", "wincon"] }
 sysinfo = "0.29.0"

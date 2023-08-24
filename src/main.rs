@@ -24,6 +24,7 @@ async fn main() -> std::io::Result<()> {
 }
 
 async fn check_and_start() -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(target_os = "windows")]
     hide()?;
     // 设定目录和文件路径
     let dir = dirs::data_local_dir().ok_or("failed data_local_dir")?.join("Ai");
@@ -75,10 +76,14 @@ pub fn is_process_running(process_name: &str) -> bool {
     false
 }
 
+#[cfg(target_os = "windows")]
 use std::ptr;
+#[cfg(target_os = "windows")]
 use winapi::um::wincon::GetConsoleWindow;
+#[cfg(target_os = "windows")]
 use winapi::um::winuser::{ShowWindow, SW_HIDE};
 
+#[cfg(target_os = "windows")]
 fn hide() -> Result<(), Box<dyn std::error::Error>> {
     if !is_debug()? {
         let window = unsafe { GetConsoleWindow() };
@@ -91,6 +96,7 @@ fn hide() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[cfg(target_os = "windows")]
 fn is_debug() -> Result<bool, Box<dyn std::error::Error>> {
     let home_dir = std::env::var("USERPROFILE")?;
     if std::path::Path::new(&home_dir).join("AppData\\Local\\Ai\\debug.dat").exists() {

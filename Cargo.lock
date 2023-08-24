@@ -685,7 +685,7 @@ checksum = "ca6ad05a4870b2bf5fe995117d3728437bd27d7cd5f06f13c17443ef369775a1"
 
 [[package]]
 name = "wei-daemon"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "dirs",
  "single-instance",
@@ -698,9 +698,9 @@ dependencies = [
 
 [[package]]
 name = "wei-log"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fa17aed7c496b8410bf44a9b7c89cbd3abe6f653212c25047a4858b6a46ab83"
+checksum = "49062fa2c6487f84910028b97cc982645e535f47e69871f2799bf220bdde8c6a"
 dependencies = [
  "chrono",
 ]
