@@ -1,67 +1,40 @@
 use sysinfo::{System,SystemExt,ProcessExt};
-use std::fs;
-use std::process::Command;
-use std::time::Duration;
-use tokio::time::sleep;
 
-#[macro_use]
-extern crate wei_log;
+// #[macro_use]
+// extern crate wei_log;
 
-// #[tokio::main]
-// async fn main() -> std::io::Result<()> {
-//     use single_instance::SingleInstance;
-//     let instance = SingleInstance::new("daemon").unwrap();
-//     if !instance.is_single() { 
-//         info!(" 已经存在相同的应用程序，请检查系统托盘。");
-//         tokio::time::sleep(Duration::from_secs(10)).await;
-//         std::process::exit(1);
-//     };
 
-//     if let Err(e) = check_and_start().await { 
-//         error!("{}", e); 
-//     }
-//     Ok(())
-// }
+// 扫描daemon.yml文件
+// 使用线程执行check_and_start，保证daemon.yml里面命令要被运行
+// 像wei-task这类型的程序需要在循环里面配置退出程序
 
-pub async fn check_and_start() -> Result<(), Box<dyn std::error::Error>> {
-    //如果是windows 系统就隐藏控制台
-    #[cfg(target_os = "windows")]
-    hide()?;
+    // 先去当前目录bin下面找对应的exe文件，如果没有，则去wei_env::dir_bin下面找对应执行的路径
+    // 如果还是没有，则去网络上面查找有没有对应的exe文件，如果有则去下载。并提示当前正在下载文件
+    // 如果在网络上面没有找到对应的exe文件，则提示失败
 
-    // 设定目录和文件路径
-    let dir = dirs::data_local_dir().ok_or("failed data_local_dir")?.join("Ai");
-    let file_path = dir.join("start.dat");
-    let exe_path = dir.join("ai-x86_64-pc-windows-msvc.exe");
+// 先检查进程是否存在
+// 如果进程不存在就开启进程
 
+pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
     loop {
-        // 读取文件内容
-        let content = fs::read_to_string(&file_path)?;
-
-        info!("正在检查是否开启应用程序...");
-        info!("当前状态为：{}",content.trim());
-        info!("是否存在进程ai.exe：{}",is_process_running("ai-x86_64-pc-windows-msvc.exe"));
-
-        if content.trim() == "1"
-        && !is_process_running("ai-x86_64-pc-windows-msvc.exe") {
-            info!("检测ai.exe路径是否存在：{}", exe_path.exists());
-            // 检查ai.exe是否存在
-            if exe_path.exists() {
-                // 启动ai.exe
-                Command::new("powershell")
-                .args(&["/C", "start", &format!("\"{}\"", exe_path.display())])
-                .spawn()?;
-
-                info!("{}", exe_path.to_string_lossy());
+        let content = std::fs::read_to_string(wei_env::dir_daemon())?;
+        let map: serde_yaml::Value = serde_yaml::from_str(&content)?;
+    
+        if let serde_yaml::Value::Mapping(m) = map.clone() {
+            for (k, _) in m {
+                let data = k.clone();
+                tokio::task::spawn( async move {
+                    let name = data.as_str().expect("name is not string");
+                    if !is_process_running(name.clone()) {
+                        println!("{} is not running", name);
+                        wei_run::run(name, Vec::new()).unwrap();
+                    }
+                });
             }
         }
 
-        if content.trim() == "0" {
-            break;
-        }
-        
-        sleep(Duration::from_secs(30)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
     }
-    Ok(())
 }
 
 pub fn is_process_running(process_name: &str) -> bool {
@@ -79,19 +52,12 @@ pub fn is_process_running(process_name: &str) -> bool {
 }
 
 #[cfg(target_os = "windows")]
-use std::ptr;
-#[cfg(target_os = "windows")]
-use winapi::um::wincon::GetConsoleWindow;
-#[cfg(target_os = "windows")]
-use winapi::um::winuser::{ShowWindow, SW_HIDE};
-
-#[cfg(target_os = "windows")]
 pub fn hide() -> Result<(), Box<dyn std::error::Error>> {
     if !is_debug()? {
         let window = unsafe { winapi::um::wincon::GetConsoleWindow() };
-        if window != ptr::null_mut() {
+        if window != std::ptr::null_mut() {
             unsafe {
-                ShowWindow(window, SW_HIDE);
+                winapi::um::winuser::ShowWindow(window, winapi::um::winuser::SW_HIDE);
             }
         }
     }
