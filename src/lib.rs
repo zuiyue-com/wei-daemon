@@ -1,7 +1,7 @@
 use sysinfo::{System,SystemExt,ProcessExt};
 
-// #[macro_use]
-// extern crate wei_log;
+#[macro_use]
+extern crate wei_log;
 
 
 // 扫描daemon.yml文件
@@ -24,9 +24,9 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
             for (k, _) in m {
                 let data = k.clone();
                 tokio::task::spawn( async move {
-                    let name = data.as_str().expect("name is not string");
+                    let name = data.as_str().expect("process is not string");
                     if !is_process_running(name.clone()) {
-                        println!("{} is not running", name);
+                        info!("{} is not running", name);
                         wei_run::run(name, Vec::new()).unwrap();
                     }
                 });
