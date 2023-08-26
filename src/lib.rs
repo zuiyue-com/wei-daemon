@@ -25,18 +25,21 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
                 let data = k.clone();
                 tokio::task::spawn( async move {
                     let name = data.as_str().expect("process is not string");
-                    if !is_process_running(name.clone()) {
-                        info!("{} is not running", name);
-                        wei_run::run(name, Vec::new()).unwrap();
-                    }
+                     if !is_process_running(name.clone()) {
+                         info!("{} is not running", name);
+                         wei_run::run(name, Vec::new()).unwrap();
+                     }
                 });
             }
         }
 
-        tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
     }
 }
 
+/// Read the list of all processes and find out if the given parameters exist in the list.
+/// If the process exists, return true, otherwise return false. 
+/// !!! Very high CPU usage !!!
 pub fn is_process_running(process_name: &str) -> bool {
     let mut sys = System::new_all();
     sys.refresh_all();
