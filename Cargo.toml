@@ -19,7 +19,7 @@ winres = "0.1"
 [dependencies]
 wei-run = { path = "../wei-run" }
 wei-env = "0.2.5"
-wei-log = "0.2.1"
+wei-log = "0.2.2"
 serde_yaml = "0.9"
 tokio = { version = "1.28.1", features = ["full"] }
 winapi = { version = "0.3.9", features = ["winuser", "wincon"] }

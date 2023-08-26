@@ -779,16 +779,16 @@ dependencies = [
 
 [[package]]
 name = "wei-log"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49062fa2c6487f84910028b97cc982645e535f47e69871f2799bf220bdde8c6a"
+checksum = "01a607d71f72a903be4a76e60715e7572ba7dffb6fe9408c5b9266843ceb26b5"
 dependencies = [
  "chrono",
 ]
 
 [[package]]
 name = "wei-run"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "wei-env",
  "winapi",
