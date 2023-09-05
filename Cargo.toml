@@ -1,6 +1,6 @@
 [package]
 name = "wei-daemon"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 description = "wei daemon"
 documentation = "https://github.com/zuiyue-com/wei-daemon"
@@ -18,7 +18,7 @@ winres = "0.1"
 
 [dependencies]
 wei-run = "0.1.10"
-wei-env = "0.2.5"
+wei-env = "0.2.7"
 wei-log = "0.2.3"
 serde_yaml = "0.9"
 tokio = { version = "1.28.1", features = ["full"] }

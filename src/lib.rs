@@ -17,6 +17,10 @@ extern crate wei_log;
 
 pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
     loop {
+        if wei_env::status() == "0" {
+            return Ok(());
+        }
+
         let content = std::fs::read_to_string(wei_env::dir_daemon())?;
         let map: serde_yaml::Value = serde_yaml::from_str(&content)?;
     
