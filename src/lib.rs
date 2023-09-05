@@ -1,8 +1,8 @@
 // use sysinfo::{System,SystemExt,ProcessExt};
+use std::process::Command;
 
 #[macro_use]
 extern crate wei_log;
-
 
 // 扫描daemon.yml文件
 // 使用线程执行check_and_start，保证daemon.yml里面命令要被运行
