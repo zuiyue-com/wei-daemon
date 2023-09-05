@@ -1,4 +1,4 @@
-use sysinfo::{System,SystemExt,ProcessExt};
+// use sysinfo::{System,SystemExt,ProcessExt};
 use std::fs;
 use std::process::Command;
 use std::time::Duration;
@@ -62,18 +62,37 @@ async fn check_and_start() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+// pub fn is_process_running(process_name: &str) -> bool {
+//     let mut sys = System::new_all();
+//     sys.refresh_all();
+//     let processes = sys.processes();
+
+//     for (_pid, proc) in processes {
+//         if proc.name().to_lowercase() == process_name.to_lowercase() {
+//             return true;
+//         }
+//     }
+
+//     false
+// }
+
+
 pub fn is_process_running(process_name: &str) -> bool {
-    let mut sys = System::new_all();
-    sys.refresh_all();
-    let processes = sys.processes();
+    let output = if cfg!(target_os = "windows") {
+        Command::new("powershell")
+            .arg("-Command")
+            .arg(format!("Get-Process -Name {} -ErrorAction SilentlyContinue", process_name))
+            .output()
+            .expect("Failed to execute command")
+    } else {
+        Command::new("bash")
+            .arg("-c")
+            .arg(format!("pgrep -f {}", process_name))
+            .output()
+            .expect("Failed to execute command")
+    };
 
-    for (_pid, proc) in processes {
-        if proc.name().to_lowercase() == process_name.to_lowercase() {
-            return true;
-        }
-    }
-
-    false
+    !output.stdout.is_empty()
 }
 
 #[cfg(target_os = "windows")]
