@@ -6,7 +6,6 @@ description = "wei daemon"
 documentation = "https://github.com/zuiyue-com/wei-daemon"
 homepage = "https://github.com/zuiyue-com/wei-daemon"
 license = "MIT OR Apache-2.0"
-build = "build.rs"
 
 [lib]
 name = "wei_daemon"
