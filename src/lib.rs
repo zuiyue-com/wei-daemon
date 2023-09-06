@@ -29,7 +29,7 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
                 let data = k.clone();
                 tokio::task::spawn( async move {
                     let name = data.as_str().expect("process is not string");
-                     if !is_process_running(name.clone()) {
+                     if !wei_run::is_process_running(name.clone()) {
                          info!("{} is not running", name);
                          wei_run::run(name, Vec::new()).unwrap();
                      }
@@ -39,25 +39,6 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
 
         tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
     }
-}
-
-
-pub fn is_process_running(process_name: &str) -> bool {
-    let output = if cfg!(target_os = "windows") {
-        Command::new("powershell")
-            .arg("-Command")
-            .arg(format!("Get-Process -Name {} -ErrorAction SilentlyContinue", process_name))
-            .output()
-            .expect("Failed to execute command")
-    } else {
-        Command::new("bash")
-            .arg("-c")
-            .arg(format!("pgrep -f {}", process_name))
-            .output()
-            .expect("Failed to execute command")
-    };
-
-    !output.stdout.is_empty()
 }
 
 /// Read the list of all processes and find out if the given parameters exist in the list.
