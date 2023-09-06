@@ -1,5 +1,5 @@
 // use sysinfo::{System,SystemExt,ProcessExt};
-use std::process::Command;
+// use std::process::Command;
 
 #[macro_use]
 extern crate wei_log;
