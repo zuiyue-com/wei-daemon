@@ -4,8 +4,8 @@ use std::process::Command;
 #[macro_use]
 extern crate wei_log;
 
-// 扫描daemon.yml文件
-// 使用线程执行check_and_start，保证daemon.yml里面命令要被运行
+// 扫描daemon.dat文件
+// 使用线程执行check_and_start，保证daemon.dat里面命令要被运行
 // 像wei-task这类型的程序需要在循环里面配置退出程序
 
     // 先去当前目录bin下面找对应的exe文件，如果没有，则去wei_env::dir_bin下面找对应执行的路径
@@ -21,7 +21,7 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
             return Ok(());
         }
 
-        let content = std::fs::read_to_string(wei_env::dir_daemon())?;
+        let content = std::fs::read_to_string("./daemon.dat")?;
         let map: serde_yaml::Value = serde_yaml::from_str(&content)?;
     
         if let serde_yaml::Value::Mapping(m) = map.clone() {
