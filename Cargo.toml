@@ -15,7 +15,7 @@ path = "src/lib.rs"
 winres = "0.1"
 
 [dependencies]
-wei-run = "0.1.14"
+wei-run = "0.1.15"
 wei-env = "0.2.7"
 wei-log = "0.2.3"
 serde_yaml = "0.9"
