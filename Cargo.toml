@@ -1,6 +1,6 @@
 [package]
 name = "wei-daemon"
-version = "0.2.14"
+version = "0.2.15"
 edition = "2021"
 description = "wei daemon"
 documentation = "https://github.com/zuiyue-com/wei-daemon"
@@ -15,7 +15,7 @@ path = "src/lib.rs"
 winres = "0.1"
 
 [dependencies]
-wei-run = "0.1.16"
+wei-run = "0.1.17"
 wei-env = "0.2.7"
 wei-log = "0.2.3"
 serde_yaml = "0.9"
