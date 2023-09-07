@@ -37,7 +37,7 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 
-        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
     }
 }
 
