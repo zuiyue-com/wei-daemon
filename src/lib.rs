@@ -41,23 +41,6 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-/// Read the list of all processes and find out if the given parameters exist in the list.
-/// If the process exists, return true, otherwise return false. 
-/// !!! Very high CPU usage !!!
-// pub fn is_process_running(process_name: &str) -> bool {
-//     let mut sys = System::new_all();
-//     sys.refresh_all();
-//     let processes = sys.processes();
-
-//     for (_pid, proc) in processes {
-//         if proc.name().to_lowercase() == process_name.to_lowercase() {
-//             return true;
-//         }
-//     }
-
-//     false
-// }
-
 #[cfg(target_os = "windows")]
 pub fn hide() -> Result<(), Box<dyn std::error::Error>> {
     if !is_debug()? {
