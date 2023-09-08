@@ -27,13 +27,12 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
         if let serde_yaml::Value::Mapping(m) = map.clone() {
             for (k, _) in m {
                 let data = k.clone();
-                tokio::task::spawn( async move {
-                    let name = data.as_str().expect("process is not string");
-                     if !wei_run::is_process_running(name.clone()) {
-                         info!("{} is not running", name);
-                         wei_run::run(name, Vec::new()).unwrap();
-                     }
-                });
+                let name = data.as_str().expect("process is not string");
+                if !wei_run::is_process_running(name.clone()) {
+                    info!("{} is not running", name);
+                    //wei_run::run(name, Vec::new()).unwrap();
+                    wei_run::command("start ".to_owned()+name, vec![]).unwrap();
+                }
             }
         }
 
