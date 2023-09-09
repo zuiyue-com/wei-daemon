@@ -40,19 +40,6 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-#[cfg(target_os = "windows")]
-pub fn hide() -> Result<(), Box<dyn std::error::Error>> {
-    if !is_debug()? {
-        let window = unsafe { winapi::um::wincon::GetConsoleWindow() };
-        if window != std::ptr::null_mut() {
-            unsafe {
-                winapi::um::winuser::ShowWindow(window, winapi::um::winuser::SW_HIDE);
-            }
-        }
-    }
-    Ok(())
-}
-
 pub fn is_debug() -> Result<bool, Box<dyn std::error::Error>> {
     let home_dir = std::env::var("USERPROFILE")?;
     if std::path::Path::new(&home_dir).join("AppData\\Local\\Ai\\debug.dat").exists() {
