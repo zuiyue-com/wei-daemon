@@ -30,21 +30,11 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
                 let name = data.as_str().expect("process is not string");
                 if !wei_run::is_process_running(name.clone()) {
                     info!("{} is not running", name);
-                    //wei_run::run(name, Vec::new()).unwrap();
-                    wei_run::command("start ".to_owned()+name, vec![]).unwrap();
+                    wei_run::command_async(name, vec![])?;
                 }
             }
         }
 
         tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
     }
-}
-
-pub fn is_debug() -> Result<bool, Box<dyn std::error::Error>> {
-    let home_dir = std::env::var("USERPROFILE")?;
-    if std::path::Path::new(&home_dir).join("AppData\\Local\\Ai\\debug.dat").exists() {
-        return Ok(true);
-    }
-
-    return Ok(false);
 }
