@@ -30,7 +30,7 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
                 let name = data.as_str().expect("process is not string");
                 if !wei_run::is_process_running(name.clone()) {
                     info!("{} is not running", name);
-                    wei_run::command_async(name, vec![])?;
+                    wei_run::run_async(name, vec![])?;
                 }
             }
         }
