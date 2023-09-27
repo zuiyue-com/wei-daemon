@@ -11,6 +11,9 @@ license = "MIT OR Apache-2.0"
 # name = "wei_daemon"
 # path = "src/lib.rs"
 
+[profile.release]
+opt-level = 'z'
+
 [build-dependencies]
 winres = "0.1"
 
