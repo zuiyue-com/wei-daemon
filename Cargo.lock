@@ -751,7 +751,7 @@ checksum = "ca6ad05a4870b2bf5fe995117d3728437bd27d7cd5f06f13c17443ef369775a1"
 
 [[package]]
 name = "wei-daemon"
-version = "0.2.20"
+version = "0.2.22"
 dependencies = [
  "dirs",
  "serde_yaml",

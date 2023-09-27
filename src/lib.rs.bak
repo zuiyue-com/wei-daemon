@@ -1,0 +1,200 @@
+// use sysinfo::{System,SystemExt,ProcessExt};
+// use std::process::Command;
+
+#[macro_use]
+extern crate wei_log;
+
+// 扫描daemon.dat文件
+// 使用线程执行check_and_start，保证daemon.dat里面命令要被运行
+// 像wei-task这类型的程序需要在循环里面配置退出程序
+
+    // 先去当前目录bin下面找对应的exe文件，如果没有，则去wei_env::dir_bin下面找对应执行的路径
+    // 如果还是没有，则去网络上面查找有没有对应的exe文件，如果有则去下载。并提示当前正在下载文件
+    // 如果在网络上面没有找到对应的exe文件，则提示失败
+
+// 先检查进程是否存在
+// 如果进程不存在就开启进程
+
+pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
+    loop {
+        if wei_env::status() == "0" {
+            return Ok(());
+        }
+
+        let content = std::fs::read_to_string("./daemon.dat")?;
+        let map: serde_yaml::Value = serde_yaml::from_str(&content)?;
+    
+        if let serde_yaml::Value::Mapping(m) = map.clone() {
+            for (k, _) in m {
+                let data = k.clone();
+                let name = data.as_str().expect("process is not string");
+
+                // 判断 name.clone + ".exe" 文件是否存在
+                // 如果不存在，则去wei_env::dir_bin下面找对应执行的路径
+                // 如果还是没有，则去网络上面查找有没有对应的exe文件，如果有则去下载。并提示当前正在下载文件
+                // 如果在网络上面没有找到对应的exe文件，则提示失败
+
+                // 判断是不是windows系统 
+                // 如果是windows系统，则判断是不是存在.exe文件
+
+                #[cfg(target_os = "windows")]
+                let name_exe = format!("{}.exe", name.clone());
+                #[cfg(target_os = "windows")]
+                let name_exe = name_exe.as_str();
+
+                if !std::path::Path::new(name_exe.clone()).exists() {
+                    continue;
+                }
+
+                if !wei_run::is_process_running(name.clone()) {
+                    info!("{} is not running", name);
+                    wei_run::run_async(name, vec![])?;
+                }
+            }
+        }
+
+        tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
+    }
+}
+
+
+
+use std::fs::{self, File};
+use std::io::{self, Read, BufReader, BufRead};
+use std::path::{Path};
+use sha2::{Sha256, Digest};
+use std::collections::HashMap;
+
+pub fn calculate_sha256<P: AsRef<Path>>(file_path: P) -> io::Result<String> {
+    let mut file = File::open(file_path.as_ref())?;
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+
+    let mut hasher = Sha256::new();
+    hasher.update(buffer);
+    let hash = hasher.finalize();
+    Ok(format!("{:x}", hash))
+}
+
+pub fn read_checksums<P: AsRef<Path>>(file_path: P) -> io::Result<HashMap<String, String>> {
+    let file = File::open(file_path)?;
+
+    let reader = BufReader::new(file);
+
+    let mut checksums = HashMap::new();
+
+    for line in reader.lines() {
+        let line = line?;
+        let mut parts = line.split("|||");
+        let path = parts.next().unwrap().to_string();
+        let checksum = parts.next().unwrap().to_string();
+        checksums.insert(path, checksum);
+    }
+
+    Ok(checksums)
+}
+
+pub async fn verify_files(checksums: &HashMap<String, String>, prefix: &Path) -> io::Result<()> {
+    for relative_path_str in checksums.keys() {
+        let path = prefix.join(relative_path_str);
+
+        // if path.file_name().unwrap() == "checksum.dat" ||
+        //    path.file_name().unwrap() == "wei.exe" {
+        //     continue;
+        // }
+        // 只检测wei-updater.exe程序，其它不检测
+        if path.file_name().unwrap() != "wei-updater.exe" {
+            continue;
+        }
+
+        if path.is_file() {
+            let expected_checksum = checksums.get(relative_path_str).unwrap();
+            let actual_checksum = calculate_sha256(&path)?;
+            if &actual_checksum != expected_checksum {
+                info!("Checksum mismatch for {}: expected {}, found {}", relative_path_str, expected_checksum, actual_checksum);
+                copy_file_from_new_or_internet(relative_path_str).await?;
+            }
+        } else {
+            info!("File {} not found in local directory", relative_path_str);
+            copy_file_from_new_or_internet(relative_path_str).await?;
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn copy_file_from_new_or_internet(dest: &str) -> std::io::Result<()> {
+    let local_version = fs::read_to_string("./data/version.dat").unwrap();
+    let src = format!("./data/new/{}/{}", local_version, dest);
+    if Path::new(&src).exists() {
+        fs::copy(src, dest)?;
+        info!("File copied successfully.");
+    } else {
+        info!("Source file does not exist.");
+        #[cfg(target_os = "windows")]
+        message("提示", "文件丢失或者不匹配，请重新下载最新版本");
+        info!("文件丢失或者不匹配，请重新下载最新版本");
+
+        std::process::exit(1);
+        // let path = Path::new(dest);
+        // download_file(dest, path).await?;
+    }
+
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+pub fn message(title: &str, text: &str) {
+    use winapi::um::winuser::{MessageBoxW, MB_OK};
+    use std::os::windows::ffi::OsStrExt;
+    use std::ffi::OsStr;
+    use std::iter::once;
+    use std::ptr::null_mut;
+
+    let title: Vec<u16> = OsStr::new(title).encode_wide().chain(once(0)).collect();
+    let text: Vec<u16> = OsStr::new(text).encode_wide().chain(once(0)).collect();
+    
+    unsafe {
+        MessageBoxW(null_mut(), text.as_ptr(), title.as_ptr(), MB_OK);
+    }
+}
+
+// 先检查 data/checksum.dat,如果不存在直接下载https://download.zuiyue.com/os/latest/data/checksum.dat，通过 checksum.dat 下载所有最新的文件和应用程序。
+// 碰到 data/checksum.dat 文件不统一的情况，先从 data/new/0.1.2 版本里面复制对应的文件到 data/ 目录下面，然后再检查，如果还是不统一，则从远程对应系统里面的latest下载所有最新的文件和应用程序。
+pub async fn _download_all() -> Result<(), Box<dyn std::error::Error>> {
+    // 下载 format!("https://download.zuiyue.com/{}/latest/data/checksum.dat, std::env::consts::OS");
+    // 读取checksum.dat里面的内容，内容格式是每一个文件一行，格式是 文件路径|||checksum
+    // 使用 reqwest 下载这些文件对应的存放到指对应每一行的文件路径
+    // Download the checksum file
+    let checksum_path = Path::new("./data/checksum.dat");
+    _download_file("data/checksum.dat", checksum_path).await?;
+    let checksums = read_checksums("./data/checksum.dat")?;
+    
+    for (path, _checksum) in &checksums {
+        let file_path = Path::new(path);
+        _download_file(&path, file_path).await?;
+    }
+
+    Ok(())
+}
+
+
+pub async fn _download_file(file_path: &str, path: &Path) -> io::Result<()> {
+    let url = format!("http://download.zuiyue.com/{}/latest/{}", std::env::consts::OS, file_path);
+    if path.display().to_string() == "wei.exe" {
+        return Ok(());
+    }
+    info!("Downloading {} to {}", url, path.display());
+    // Create parent directory if it doesn't exist
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    let response = reqwest::get(url).await.unwrap();
+
+    let content = response.bytes().await.unwrap();
+    // Write the file to disk
+    fs::write(path, content)?;
+
+    Ok(())
+}

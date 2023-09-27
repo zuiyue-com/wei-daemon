@@ -1,126 +1,89 @@
-// use sysinfo::{System,SystemExt,ProcessExt};
 use std::fs;
-use std::process::Command;
-use std::time::Duration;
-use tokio::time::sleep;
+use std::path::Path;
 
 #[macro_use]
 extern crate wei_log;
 
 #[tokio::main]
-async fn main() -> std::io::Result<()> {
-    use single_instance::SingleInstance;
-    let instance = SingleInstance::new("daemon").unwrap();
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    wei_env::bin_init("wei-daemon");
+    let instance = single_instance::SingleInstance::new("wei-daemon")?;
     if !instance.is_single() { 
-        info!(" 已经存在相同的应用程序，请检查系统托盘。");
-        tokio::time::sleep(Duration::from_secs(10)).await;
         std::process::exit(1);
     };
 
-    if let Err(e) = check_and_start().await { 
-        error!("{}", e); 
+    // 如果./data/checksum.dat不存在 
+    // if !std::path::Path::new("./data/checksum.dat").exists() {
+    //     #[cfg(target_os = "windows")]
+    //     message("错误", "文件丢失，请重新下载完整软件");
+    //     info!("文件丢失，请重新下载完整软件")
+    //     // download_all().await?;
+    // }
+    // let dir = std::path::PathBuf::from("./");
+    // let checksums = read_checksums("./data/checksum.dat")?;
+    // verify_files(&checksums, &dir).await?;
+
+    // 读取 version.dat 
+    // 获取当前版本号
+    // 复制 new/版本号/wei-updater.exe 到当前目录下面
+    wei_run::kill("wei-updater.exe")?;
+    let version = std::fs::read_to_string("version.dat").unwrap();
+    let src = format!("./new/{}/wei-updater.exe", version);
+    if Path::new(&src).exists() {
+        fs::copy(src, "wei-updater.exe")?;
     }
+
+    info!("start daemon");
+    start().await?;
+
     Ok(())
 }
 
-async fn check_and_start() -> Result<(), Box<dyn std::error::Error>> {
-    #[cfg(target_os = "windows")]
-    hide()?;
-    // 设定目录和文件路径
-    let dir = dirs::data_local_dir().ok_or("failed data_local_dir")?.join("Ai");
-    let file_path = dir.join("start.dat");
-    let exe_path = dir.join("ai-x86_64-pc-windows-msvc.exe");
+// 扫描daemon.dat文件
+// 使用线程执行check_and_start，保证daemon.dat里面命令要被运行
+// 像wei-task这类型的程序需要在循环里面配置退出程序
 
+    // 先去当前目录bin下面找对应的exe文件，如果没有，则去wei_env::dir_bin下面找对应执行的路径
+    // 如果还是没有，则去网络上面查找有没有对应的exe文件，如果有则去下载。并提示当前正在下载文件
+    // 如果在网络上面没有找到对应的exe文件，则提示失败
+
+// 先检查进程是否存在
+// 如果进程不存在就开启进程
+
+pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
     loop {
-        // 读取文件内容
-        let content = fs::read_to_string(&file_path)?;
+        if wei_env::status() == "0" {
+            return Ok(());
+        }
 
-        info!("正在检查是否开启应用程序...");
-        info!("当前状态为：{}",content.trim());
-        info!("是否存在进程ai.exe：{}",is_process_running("ai-x86_64-pc-windows-msvc.exe"));
+        let content = std::fs::read_to_string("./daemon.dat")?;
+        let map: serde_yaml::Value = serde_yaml::from_str(&content)?;
+    
+        if let serde_yaml::Value::Mapping(m) = map.clone() {
+            for (k, _) in m {
+                let data = k.clone();
+                let name = data.as_str().expect("process is not string");
 
-        if content.trim() == "1"
-        && !is_process_running("ai-x86_64-pc-windows-msvc.exe") {
-            info!("检测ai.exe路径是否存在：{}", exe_path.exists());
-            // 检查ai.exe是否存在
-            if exe_path.exists() {
-                // 启动ai.exe
-                Command::new("powershell")
-                .args(&["/C", "start", &format!("\"{}\"", exe_path.display())])
-                .spawn()?;
+                // 判断 name_exe.clone + ".exe" 文件是否存在
+                // 判断是不是windows系统 
+                // 如果是windows系统，则判断是不是存在.exe文件
 
-                info!("{}", exe_path.to_string_lossy());
+                #[cfg(target_os = "windows")]
+                let name_exe = format!("{}.exe", name.clone());
+                #[cfg(target_os = "windows")]
+                let name_exe = name_exe.as_str();
+
+                if !std::path::Path::new(name_exe.clone()).exists() {
+                    continue;
+                }
+
+                if !wei_run::is_process_running(name.clone()) {
+                    info!("{} is not running", name);
+                    wei_run::run_async(name, vec![])?;
+                }
             }
         }
 
-        if content.trim() == "0" {
-            break;
-        }
-        
-        sleep(Duration::from_secs(30)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
     }
-    Ok(())
-}
-
-// pub fn is_process_running(process_name: &str) -> bool {
-//     let mut sys = System::new_all();
-//     sys.refresh_all();
-//     let processes = sys.processes();
-
-//     for (_pid, proc) in processes {
-//         if proc.name().to_lowercase() == process_name.to_lowercase() {
-//             return true;
-//         }
-//     }
-
-//     false
-// }
-
-
-pub fn is_process_running(process_name: &str) -> bool {
-    let output = if cfg!(target_os = "windows") {
-        Command::new("powershell")
-            .arg("-Command")
-            .arg(format!("Get-Process -Name {} -ErrorAction SilentlyContinue", process_name))
-            .output()
-            .expect("Failed to execute command")
-    } else {
-        Command::new("bash")
-            .arg("-c")
-            .arg(format!("pgrep -f {}", process_name))
-            .output()
-            .expect("Failed to execute command")
-    };
-
-    !output.stdout.is_empty()
-}
-
-#[cfg(target_os = "windows")]
-use std::ptr;
-#[cfg(target_os = "windows")]
-use winapi::um::wincon::GetConsoleWindow;
-#[cfg(target_os = "windows")]
-use winapi::um::winuser::{ShowWindow, SW_HIDE};
-
-#[cfg(target_os = "windows")]
-fn hide() -> Result<(), Box<dyn std::error::Error>> {
-    if !is_debug()? {
-        let window = unsafe { GetConsoleWindow() };
-        if window != ptr::null_mut() {
-            unsafe {
-                ShowWindow(window, SW_HIDE);
-            }
-        }
-    }
-    Ok(())
-}
-
-#[cfg(target_os = "windows")]
-fn is_debug() -> Result<bool, Box<dyn std::error::Error>> {
-    let home_dir = std::env::var("USERPROFILE")?;
-    if std::path::Path::new(&home_dir).join("AppData\\Local\\Ai\\debug.dat").exists() {
-        return Ok(true);
-    }
-
-    return Ok(false);
 }
