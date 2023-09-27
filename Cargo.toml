@@ -1,6 +1,6 @@
 [package]
 name = "wei-daemon"
-version = "0.2.21"
+version = "0.2.22"
 edition = "2021"
 description = "wei daemon"
 documentation = "https://github.com/zuiyue-com/wei-daemon"
