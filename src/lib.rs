@@ -40,9 +40,9 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
                 #[cfg(target_os = "windows")]
                 let name_exe = format!("{}.exe", name.clone());
                 #[cfg(target_os = "windows")]
-                let name = name_exe.as_str();
+                let name_exe = name_exe.as_str();
 
-                if !std::path::Path::new(name.clone()).exists() {
+                if !std::path::Path::new(name_exe.clone()).exists() {
                     continue;
                 }
 
