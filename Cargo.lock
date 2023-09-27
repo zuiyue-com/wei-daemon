@@ -751,7 +751,7 @@ checksum = "ca6ad05a4870b2bf5fe995117d3728437bd27d7cd5f06f13c17443ef369775a1"
 
 [[package]]
 name = "wei-daemon"
-version = "0.2.17"
+version = "0.2.20"
 dependencies = [
  "dirs",
  "serde_yaml",
@@ -786,9 +786,9 @@ dependencies = [
 
 [[package]]
 name = "wei-run"
-version = "0.1.21"
+version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec234ffc2e4a71600c9c099d5805b3bcfb75b750f56b1f165d7777e4e39b9e46"
+checksum = "134d60a99b205eaec41eb46e37d98b145c4814ca08e4eb46f6cfe49c98a6652c"
 dependencies = [
  "procfs",
  "wei-env",

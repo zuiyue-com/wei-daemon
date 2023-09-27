@@ -28,6 +28,24 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
             for (k, _) in m {
                 let data = k.clone();
                 let name = data.as_str().expect("process is not string");
+
+                // 判断 name.clone + ".exe" 文件是否存在
+                // 如果不存在，则去wei_env::dir_bin下面找对应执行的路径
+                // 如果还是没有，则去网络上面查找有没有对应的exe文件，如果有则去下载。并提示当前正在下载文件
+                // 如果在网络上面没有找到对应的exe文件，则提示失败
+
+                // 判断是不是windows系统 
+                // 如果是windows系统，则判断是不是存在.exe文件
+
+                #[cfg(target_os = "windows")]
+                let name_exe = format!("{}.exe", name.clone());
+                #[cfg(target_os = "windows")]
+                let name = name_exe.as_str();
+
+                if !std::path::Path::new(name.clone()).exists() {
+                    continue;
+                }
+
                 if !wei_run::is_process_running(name.clone()) {
                     info!("{} is not running", name);
                     wei_run::run_async(name, vec![])?;
@@ -35,6 +53,6 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 
-        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
     }
 }
