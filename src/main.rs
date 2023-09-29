@@ -77,10 +77,10 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
                     continue;
                 }
 
-                if !wei_run::is_process_running(name.clone()) {
-                    info!("{} is not running", name);
-                    wei_run::run_async(name, vec![])?;
-                }
+                // if !wei_run::is_process_running(name.clone()) {
+                //     info!("{} is not running", name);
+                wei_run::run_async(name, vec![])?;
+                // }
             }
         }
 
