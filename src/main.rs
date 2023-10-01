@@ -68,14 +68,14 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
                 // 判断是不是windows系统 
                 // 如果是windows系统，则判断是不是存在.exe文件
 
-                #[cfg(target_os = "windows")]
-                let name_exe = format!("{}.exe", name.clone());
-                #[cfg(target_os = "windows")]
-                let name_exe = name_exe.as_str();
+                // #[cfg(target_os = "windows")]
+                // let name_exe = format!("{}.exe", name.clone());
+                // #[cfg(target_os = "windows")]
+                // let name_exe = name_exe.as_str();
 
-                if !std::path::Path::new(name_exe.clone()).exists() {
-                    continue;
-                }
+                // if !std::path::Path::new(name_exe.clone()).exists() {
+                //     continue;
+                // }
 
                 // if !wei_run::is_process_running(name.clone()) {
                 //     info!("{} is not running", name);
