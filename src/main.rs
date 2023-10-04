@@ -26,12 +26,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 读取 version.dat 
     // 获取当前版本号
     // 复制 new/版本号/wei-updater.exe 到当前目录下面
-    wei_run::kill("wei-updater.exe")?;
-    let version = std::fs::read_to_string("version.dat").unwrap();
-    let src = format!("./new/{}/wei-updater.exe", version);
-    if Path::new(&src).exists() {
-        fs::copy(src, "wei-updater.exe")?;
-    }
+    
+    // wei_run::kill("wei-updater.exe")?;
+    // let version = std::fs::read_to_string("version.dat").unwrap();
+    // let src = format!("./new/{}/wei-updater.exe", version);
+    // if Path::new(&src).exists() {
+    //     fs::copy(src, "wei-updater.exe")?;
+    // }
 
     info!("start daemon");
     start().await?;
