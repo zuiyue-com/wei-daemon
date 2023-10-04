@@ -18,7 +18,7 @@ opt-level = 'z'
 winres = "0.1"
 
 [dependencies]
-wei-run = "0.2.2"
+wei-run = "0.2.3"
 wei-env = "0.2.7"
 wei-log = "0.2.5"
 serde_yaml = "0.9"

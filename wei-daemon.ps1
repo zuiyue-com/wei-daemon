@@ -1,8 +1,21 @@
 # 将所有正在运行的进程 ID 存储在一个哈希表中
 $runningProcesses = @{}
 
+$statusFile = "$env:USERPROFILE\AppData\Local\wei\status.dat"
+
 # 无限循环
 while ($true) {
+    if (Test-Path -Path $statusFile) {
+        # Read the content of the file
+        $content = Get-Content -Path $statusFile -Raw
+
+        # Check if the content contains "0"
+        if ($content -match "0") {
+            # If the content contains "0", exit the script
+            exit
+        }
+    }
+
     # 读取 daemon.dat 文件中的每一行
     Get-Content daemon.dat | ForEach-Object {
         $app = $_.Trim()
