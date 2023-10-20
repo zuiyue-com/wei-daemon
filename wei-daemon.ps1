@@ -16,6 +16,14 @@ while ($true) {
         }
     }
 
+    # 检查 wei.exe 是否正在运行
+    $weiProcess = Get-Process wei -ErrorAction SilentlyContinue
+    if (!$weiProcess) {
+        # 如果 wei.exe 没有运行，则启动它，并设定工作目录为 ..
+        $weiProcess = Start-Process -FilePath "wei.exe" -WindowStyle Hidden -PassThru -WorkingDirectory ".."
+        Write-Host "Started wei.exe with PID $($weiProcess.Id)"
+    }
+
     # 读取 daemon.dat 文件中的每一行
     Get-Content daemon.dat | ForEach-Object {
         $app = $_.Trim()
