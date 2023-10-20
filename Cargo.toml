@@ -19,7 +19,7 @@ winres = "0.1"
 
 [dependencies]
 wei-run = "0.2.5"
-wei-env = "0.2.7"
+wei-env = "0.2.13"
 wei-log = "0.2.8"
 serde_yaml = "0.9"
 tokio = { version = "1.28.1", features = ["full"] }
