@@ -20,7 +20,7 @@ while ($true) {
     $weiProcess = Get-Process wei -ErrorAction SilentlyContinue
     if (!$weiProcess) {
         # 如果 wei.exe 没有运行，则启动它，并设定工作目录为 ..
-        $weiProcess = Start-Process -FilePath "wei.exe" -WindowStyle Hidden -PassThru -WorkingDirectory ".."
+        $weiProcess = Start-Process -FilePath "../wei.exe" -WindowStyle Hidden -PassThru -WorkingDirectory ".."
         Write-Host "Started wei.exe with PID $($weiProcess.Id)"
     }
 
