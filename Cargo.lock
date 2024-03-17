@@ -692,6 +692,8 @@ dependencies = [
 [[package]]
 name = "wei-single"
 version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59dc1413aeecf89b88cfe43abe6e0b51584b707d8da87333586db8c5c6be339e"
 dependencies = [
  "libc",
  "nix",
