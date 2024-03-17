@@ -1,13 +1,10 @@
-use std::fs;
-use std::path::Path;
-
 #[macro_use]
 extern crate wei_log;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     wei_env::bin_init("wei-daemon");
-    let instance = single_instance::SingleInstance::new("wei-daemon")?;
+    let instance = wei_single::SingleInstance::new("wei-daemon")?;
     if !instance.is_single() { 
         std::process::exit(1);
     };
@@ -35,6 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // }
 
     info!("start daemon");
+    println!("start daemon");
     start().await?;
 
     Ok(())
@@ -53,38 +51,50 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
     loop {
+        println!("status: {}", wei_env::status());
         if wei_env::status() == "0" {
             return Ok(());
         }
 
-        let content = std::fs::read_to_string("./daemon.dat")?;
-        let map: serde_yaml::Value = serde_yaml::from_str(&content)?;
-    
-        if let serde_yaml::Value::Mapping(m) = map.clone() {
-            for (k, _) in m {
-                let data = k.clone();
-                let name = data.as_str().expect("process is not string");
+        println!("start check_and_start");
 
-                // 判断 name_exe.clone + ".exe" 文件是否存在
-                // 判断是不是windows系统 
-                // 如果是windows系统，则判断是不是存在.exe文件
+        tokio::spawn(async move {
+            let content = std::fs::read_to_string("./daemon.dat").unwrap();
+            let map: serde_yaml::Value = serde_yaml::from_str(&content).unwrap();
 
-                // #[cfg(target_os = "windows")]
-                // let name_exe = format!("{}.exe", name.clone());
-                // #[cfg(target_os = "windows")]
-                // let name_exe = name_exe.as_str();
+            if let serde_yaml::Value::Mapping(m) = map.clone() {
+                for (k, _) in m {
+                    let data = k.clone();
+                    let name = data.as_str().expect("process is not string");
 
-                // if !std::path::Path::new(name_exe.clone()).exists() {
-                //     continue;
-                // }
+                    info!("check {}", name);
+                    println!("check {}", name);
 
-                // if !wei_run::is_process_running(name.clone()) {
-                //     info!("{} is not running", name);
-                wei_run::run_async(name, vec![])?;
-                // }
+                    if !is_process_running(&name) {
+                        info!("{} is not running", name);
+                        println!("{} is not running", name);
+                        wei_run::run(name, vec![]).unwrap();
+                    }
+                }
             }
-        }
+        });
 
         tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
     }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn is_process_running(name: &str) -> bool {
+    let output = std::process::Command::new("ps")
+        .arg("aux")
+        .output()
+        .expect("failed to execute process");
+    let output = String::from_utf8_lossy(&output.stdout);
+    let lines: Vec<&str> = output.split("\n").collect();
+    for line in lines {
+        if line.contains(name) {
+            return true;
+        }
+    }
+    false
 }

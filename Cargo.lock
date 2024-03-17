@@ -135,6 +135,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
+name = "fs2"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9564fc758e15025b46aa6643b1b77d047d1a56a1aea6e01002ac0c7026876213"
+dependencies = [
+ "libc",
+ "winapi",
+]
+
+[[package]]
 name = "getrandom"
 version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -458,19 +468,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "single-instance"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4637485391f8545c9d3dbf60f9d9aab27a90c789a700999677583bcb17c8795d"
-dependencies = [
- "libc",
- "nix",
- "thiserror",
- "widestring",
- "winapi",
-]
-
-[[package]]
 name = "smallvec"
 version = "1.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -647,24 +644,24 @@ checksum = "ca6ad05a4870b2bf5fe995117d3728437bd27d7cd5f06f13c17443ef369775a1"
 
 [[package]]
 name = "wei-daemon"
-version = "0.2.22"
+version = "0.3.1"
 dependencies = [
  "dirs",
  "serde_yaml",
- "single-instance",
  "tokio",
  "wei-env",
  "wei-log",
  "wei-run",
+ "wei-single",
  "winapi",
  "winres",
 ]
 
 [[package]]
 name = "wei-env"
-version = "0.2.10"
+version = "0.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e086590fc1cb9d78614e523622dcbdc949168254a77b8cc8b78c200761fba190"
+checksum = "1a1d8b77f8ac926a8682f063ccc7f4551169672d94649bf62b0ea52a839a3255"
 dependencies = [
  "dirs",
  "serde",
@@ -673,21 +670,33 @@ dependencies = [
 
 [[package]]
 name = "wei-log"
-version = "0.2.5"
+version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "148af995bd8f227f8d31d9532f1104cff2ad0406ddb4a8a98863a50dce44044a"
+checksum = "6d2fc3c5056b27b580653d56fa6de7333c4cc44ce4f444e572cd68939c67f6b7"
 dependencies = [
  "chrono",
+ "fs2",
 ]
 
 [[package]]
 name = "wei-run"
-version = "0.2.3"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddab586aeb62358572dc608852a5091ee64fb05bc383db22c32a1fb3b94c6a35"
+checksum = "fa4a98c4e3862f68f8f73cc61b91424c26836fe48399510d644f98243dcf5c03"
 dependencies = [
  "wei-env",
  "wei-log",
+ "winapi",
+]
+
+[[package]]
+name = "wei-single"
+version = "0.3.5"
+dependencies = [
+ "libc",
+ "nix",
+ "thiserror",
+ "widestring",
  "winapi",
 ]
 
