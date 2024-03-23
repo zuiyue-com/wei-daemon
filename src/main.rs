@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate wei_log;
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread", worker_threads = 100)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     wei_env::bin_init("wei-daemon");
     let instance = wei_single::SingleInstance::new("wei-daemon")?;
@@ -58,26 +58,24 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
 
         println!("start check_and_start");
 
-        tokio::spawn(async move {
-            let content = std::fs::read_to_string("./daemon.dat").unwrap();
-            let map: serde_yaml::Value = serde_yaml::from_str(&content).unwrap();
+        let content = std::fs::read_to_string("./daemon.dat").unwrap();
 
-            if let serde_yaml::Value::Mapping(m) = map.clone() {
-                for (k, _) in m {
-                    let data = k.clone();
-                    let name = data.as_str().expect("process is not string");
+        // content内容是每行一个进程名
+        for line in content.lines() {
+            let line = line.to_owned();
+            tokio::spawn(async move {
+                let name = line.trim();
+                info!("check {}", name);
+                println!("check {}", name);
 
-                    info!("check {}", name);
-                    println!("check {}", name);
-
-                    if !is_process_running(&name) {
-                        info!("{} is not running", name);
-                        println!("{} is not running", name);
-                        wei_run::run(name, vec![]).unwrap();
-                    }
+                if !is_process_running(&name) {
+                    info!("{} is not running", name);
+                    println!("{} is not running", name);
+                    
+                    wei_run::run(name, vec![]).unwrap();
                 }
-            }
-        });
+            });
+        }
 
         tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
     }
