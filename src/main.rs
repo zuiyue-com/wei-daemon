@@ -96,3 +96,41 @@ fn is_process_running(name: &str) -> bool {
     }
     false
 }
+
+#[cfg(target_os = "windows")]
+fn is_process_running(name: &str) -> bool {
+    use winapi::um::tlhelp32::{CreateToolhelp32Snapshot, Process32First, Process32Next, PROCESSENTRY32, TH32CS_SNAPPROCESS};
+    use winapi::um::handleapi::CloseHandle;
+    use std::mem;
+
+    unsafe {
+        let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if snapshot.is_null() {
+            return false;
+        }
+
+        let mut process_entry: PROCESSENTRY32 = mem::zeroed();
+        process_entry.dwSize = mem::size_of::<PROCESSENTRY32>() as u32;
+
+        if Process32First(snapshot, &mut process_entry) == 1 {
+            loop {
+                let exe_bytes: Vec<u8> = process_entry.szExeFile
+                    .iter()
+                    .take_while(|&&x| x != 0)
+                    .map(|&x| x as u8)
+                    .collect();
+                let process_name = String::from_utf8_lossy(&exe_bytes);
+                if process_name.to_lowercase() == name.to_lowercase() {
+                    CloseHandle(snapshot);
+                    return true;
+                }
+                if Process32Next(snapshot, &mut process_entry) != 1 {
+                    break;
+                }
+            }
+        }
+
+        CloseHandle(snapshot);
+        false
+    }
+}

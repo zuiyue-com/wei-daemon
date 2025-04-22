@@ -24,7 +24,7 @@ wei-log = "0.2.10"
 wei-single = "0.3.6"
 serde_yaml = "0.9"
 tokio = { version = "1.28.1", features = ["full"] }
-winapi = { version = "0.3.9", features = ["winuser", "wincon"] }
+winapi = { version = "0.3.9", features = ["winuser", "wincon", "tlhelp32", "handleapi"] }
 # single-instance = "0.3"
 dirs = "5.0.1"
 # sha2 = "0.10.7"
