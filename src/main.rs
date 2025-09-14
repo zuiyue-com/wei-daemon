@@ -1,136 +1,166 @@
-#[macro_use]
-extern crate wei_log;
+use std::sync::atomic::Ordering;
+use std::thread;
+use std::time::Duration;
+use tokio;
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 100)]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    wei_env::bin_init("wei-daemon");
-    let instance = wei_single::SingleInstance::new("wei-daemon")?;
-    if !instance.is_single() { 
-        std::process::exit(1);
+mod thread_manager;
+use thread_manager::ThreadManager;
+
+mod signal_handler;
+use signal_handler::SignalHandler;
+
+mod exception_handler;
+use exception_handler::{ExceptionHandler, ThreadRestartPolicy};
+
+
+pub fn log_info(message: &str) {
+    let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
+    println!("[{}] [INFO] {}", timestamp, message);
+}
+
+pub fn log_warn(message: &str) {
+    let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
+    println!("[{}] [WARN] {}", timestamp, message);
+}
+
+pub fn log_error(message: &str) {
+    let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
+    eprintln!("[{}] [ERROR] {}", timestamp, message);
+}
+
+fn initialize_daemon() -> Result<(SignalHandler, ExceptionHandler), Box<dyn std::error::Error>> {
+    log_info("初始化守护进程...");
+
+    let signal_handler = SignalHandler::new();
+    signal_handler.register()?;
+
+    let mut exception_handler = ExceptionHandler::new();
+    exception_handler.install()?;
+
+    log_info("守护进程初始化完成");
+    Ok((signal_handler, exception_handler))
+}
+
+fn daemon_main_loop() {
+    log_info("启动主循环...");
+
+    // 创建线程管理器并配置重启策略
+    let restart_policy = ThreadRestartPolicy {
+        max_restarts: 3,
+        restart_delay: Duration::from_secs(2),
+        backoff_multiplier: 2.0,
+        max_restart_delay: Duration::from_secs(30),
     };
 
-    // 如果./data/checksum.dat不存在 
-    // if !std::path::Path::new("./data/checksum.dat").exists() {
-    //     #[cfg(target_os = "windows")]
-    //     message("错误", "文件丢失，请重新下载完整软件");
-    //     info!("文件丢失，请重新下载完整软件")
-    //     // download_all().await?;
-    // }
-    // let dir = std::path::PathBuf::from("./");
-    // let checksums = read_checksums("./data/checksum.dat")?;
-    // verify_files(&checksums, &dir).await?;
+    let thread_manager = ThreadManager::new().with_restart_policy(restart_policy);
 
-    // 读取 version.dat 
-    // 获取当前版本号
-    // 复制 new/版本号/wei-updater.exe 到当前目录下面
-    
-    // wei_run::kill("wei-updater.exe")?;
-    // let version = std::fs::read_to_string("version.dat").unwrap();
-    // let src = format!("./new/{}/wei-updater.exe", version);
-    // if Path::new(&src).exists() {
-    //     fs::copy(src, "wei-updater.exe")?;
-    // }
+    // 创建示例工作线程（带异常测试功能）
+    let worker_ids: Vec<u64> = (1..=3)
+        .map(|i| {
+            let worker_name = format!("Worker-{}", i);
+            let worker_name_for_log = worker_name.clone();
 
-    info!("start daemon");
-    println!("start daemon");
-    start().await?;
+            let work_function = move |shutdown_signal: std::sync::Arc<std::sync::atomic::AtomicBool>| {
+                let mut counter = 0;
+                while !shutdown_signal.load(Ordering::SeqCst) {
+                    counter += 1;
+                    println!("工作线程 {} - 执行任务 #{}", worker_name, counter);
 
-    Ok(())
-}
+                    // 模拟工作线程异常（用于测试）
+                    if worker_name == "Worker-2" && counter == 10 {
+                        panic!("模拟工作线程异常！");
+                    }
 
-// 扫描daemon.dat文件
-// 使用线程执行check_and_start，保证daemon.dat里面命令要被运行
-// 像wei-task这类型的程序需要在循环里面配置退出程序
+                    if counter % 5 == 0 {
+                        println!("工作线程 {} - 发送心跳", worker_name);
+                    }
 
-    // 先去当前目录bin下面找对应的exe文件，如果没有，则去wei_env::dir_bin下面找对应执行的路径
-    // 如果还是没有，则去网络上面查找有没有对应的exe文件，如果有则去下载。并提示当前正在下载文件
-    // 如果在网络上面没有找到对应的exe文件，则提示失败
-
-// 先检查进程是否存在
-// 如果进程不存在就开启进程
-
-pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
-    loop {
-        println!("status: {}", wei_env::status());
-        if wei_env::status() == "0" {
-            return Ok(());
-        }
-
-        println!("start check_and_start");
-
-        let content = std::fs::read_to_string("./daemon.dat").unwrap();
-
-        // content内容是每行一个进程名
-        for line in content.lines() {
-            let line = line.to_owned();
-            tokio::spawn(async move {
-                let name = line.trim();
-                info!("check {}", name);
-                println!("check {}", name);
-
-                if !is_process_running(&name) {
-                    info!("{} is not running", name);
-                    println!("{} is not running", name);
-                    
-                    wei_run::run(name, vec![]).unwrap();
+                    thread::sleep(Duration::from_secs(2));
                 }
-            });
-        }
+                println!("工作线程 {} - 收到关闭信号，正在退出", worker_name);
+            };
 
-        tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
-    }
-}
-
-#[cfg(not(target_os = "windows"))]
-fn is_process_running(name: &str) -> bool {
-    let output = std::process::Command::new("ps")
-        .arg("aux")
-        .output()
-        .expect("failed to execute process");
-    let output = String::from_utf8_lossy(&output.stdout);
-    let lines: Vec<&str> = output.split("\n").collect();
-    for line in lines {
-        if line.contains(name) {
-            return true;
-        }
-    }
-    false
-}
-
-#[cfg(target_os = "windows")]
-fn is_process_running(name: &str) -> bool {
-    use winapi::um::tlhelp32::{CreateToolhelp32Snapshot, Process32First, Process32Next, PROCESSENTRY32, TH32CS_SNAPPROCESS};
-    use winapi::um::handleapi::CloseHandle;
-    use std::mem;
-
-    unsafe {
-        let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-        if snapshot.is_null() {
-            return false;
-        }
-
-        let mut process_entry: PROCESSENTRY32 = mem::zeroed();
-        process_entry.dwSize = mem::size_of::<PROCESSENTRY32>() as u32;
-
-        if Process32First(snapshot, &mut process_entry) == 1 {
-            loop {
-                let exe_bytes: Vec<u8> = process_entry.szExeFile
-                    .iter()
-                    .take_while(|&&x| x != 0)
-                    .map(|&x| x as u8)
-                    .collect();
-                let process_name = String::from_utf8_lossy(&exe_bytes);
-                if process_name.to_lowercase() == name.to_lowercase() {
-                    CloseHandle(snapshot);
-                    return true;
+            match thread_manager.create_thread(worker_name_for_log.clone(), work_function) {
+                Ok(thread_id) => {
+                    log_info(&format!("创建工作线程 {} (ID: {})", worker_name_for_log, thread_id));
+                    if let Err(e) = thread_manager.start_thread(thread_id) {
+                        log_error(&format!("启动线程 {} 失败: {}", thread_id, e));
+                    }
+                    Some(thread_id)
                 }
-                if Process32Next(snapshot, &mut process_entry) != 1 {
-                    break;
+                Err(e) => {
+                    log_error(&format!("创建工作线程 {} 失败: {}", worker_name_for_log, e));
+                    None
                 }
             }
+        })
+        .filter_map(|id| id)
+        .collect();
+
+    log_info(&format!("创建了 {} 个工作线程", worker_ids.len()));
+
+    let mut loop_count = 0;
+    while !signal_handler::is_shutdown_requested() {
+        loop_count += 1;
+
+        // 每隔30秒显示线程状态
+        if loop_count % 6 == 0 {
+            log_info("=== 线程状态报告 ===");
+            let threads = thread_manager.list_threads();
+            for (id, name, status) in threads {
+                let (restart_count, can_restart) = thread_manager.get_restart_info(&name);
+                log_info(&format!(
+                    "线程 {} ({}): {:?} [重启: {}/最大, 可重启: {}]",
+                    name, id, status, restart_count, can_restart
+                ));
+            }
+            log_info(&format!("总计活跃线程数: {}", thread_manager.get_thread_count()));
+            log_info(&format!("全局异常计数: {}", exception_handler::get_exception_count()));
+
+            // 显示关闭状态信息
+            if signal_handler::is_graceful_shutdown_started() {
+                if let Some(elapsed) = signal_handler::get_shutdown_elapsed_seconds() {
+                    log_info(&format!("优雅关闭进行中，已耗时: {} 秒", elapsed));
+                }
+            }
+
+            log_info("==================");
         }
 
-        CloseHandle(snapshot);
-        false
+        thread::sleep(Duration::from_secs(5));
     }
+
+    log_info("收到退出信号，正在停止所有线程...");
+
+    if let Some(elapsed) = signal_handler::get_shutdown_elapsed_seconds() {
+        log_info(&format!("关闭流程已进行 {} 秒", elapsed));
+    }
+
+    thread_manager.stop_all_threads();
+    log_info("主循环已退出");
+}
+
+fn cleanup_and_shutdown() {
+    log_info("开始清理资源...");
+    log_info("清理完成，程序即将退出");
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    log_info("Wei守护进程启动");
+
+    let (_signal_handler, _exception_handler) = match initialize_daemon() {
+        Ok(handlers) => handlers,
+        Err(e) => {
+            log_error(&format!("初始化失败: {}", e));
+            return Err(e);
+        }
+    };
+
+    daemon_main_loop();
+
+    cleanup_and_shutdown();
+
+    log_info("Wei守护进程正常退出");
+    Ok(())
 }
