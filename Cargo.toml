@@ -28,6 +28,8 @@ winapi = { version = "0.3.9", features = ["winuser", "wincon", "tlhelp32", "hand
 # single-instance = "0.3"
 dirs = "5.0.1"
 chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1.0.223", features = ["derive"] }
+serde_json = "1.0.145"
 # sha2 = "0.10.7"
 [dev-dependencies]
 tempfile = "3.8"

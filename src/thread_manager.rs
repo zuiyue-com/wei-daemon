@@ -154,7 +154,7 @@ impl ThreadManager {
 
                                 // 检查是否应该重启
                                 let should_restart = {
-                                    let mut restart_manager = restart_manager_ref.lock().unwrap();
+                                    let restart_manager = restart_manager_ref.lock().unwrap();
                                     restart_manager.can_restart(&thread_name_for_wrapper)
                                 };
 
@@ -177,7 +177,7 @@ impl ThreadManager {
                                     ));
 
                                     // 更新线程状态为重启中
-                                    if let Ok(mut threads) = threads_ref.lock() {
+                                    if let Ok(threads) = threads_ref.lock() {
                                         if let Some(thread_info) = threads.get(&thread_id) {
                                             thread_info.set_status(ThreadStatus::Restarting);
                                         }
@@ -203,7 +203,7 @@ impl ThreadManager {
                                         ));
 
                                         // 更新线程状态为失败
-                                        if let Ok(mut threads) = threads_ref.lock() {
+                                        if let Ok(threads) = threads_ref.lock() {
                                             if let Some(thread_info) = threads.get(&thread_id) {
                                                 thread_info.set_status(ThreadStatus::Failed);
                                             }
