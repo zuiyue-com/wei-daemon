@@ -1,1 +1,18 @@
-burncloud
+# Wei守护进程配置文件
+
+# 格式说明：
+# 简单格式：进程名
+# 扩展格式：进程名:可执行文件:工作目录:启动参数:最大重启次数
+#
+# 示例：
+# my-app
+# web-server:./server.exe:.:--port=8080 --config=server.conf:5
+# database:../db/database.exe:../db:--data-dir=./data:3
+
+# 扩展格式示例（注释掉的）
+# web-api:./web-api.exe:../web-api:--port=3000 --env=prod:3
+# worker:./worker.exe:../worker:--queue=default --workers=4:5
+# monitor:./monitor.exe:../monitor:--interval=60:2
+
+# Wei守护进程配置文件
+wei-daemon:./burncloud.exe
