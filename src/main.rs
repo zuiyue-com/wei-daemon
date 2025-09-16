@@ -62,9 +62,14 @@ fn daemon_main_loop() {
             if let Ok(process_name) = line {
                 if !process_name.trim().is_empty() {
                     let pm = Arc::clone(&process_manager);
+use std::env;
+
                     let name = process_name.trim().to_string();
-                    log_info(&format!("Starting process from config: {}", name));
-                    if let Err(e) = pm.start_process(&name, &name, &[]) {
+                    let current_dir = env::current_dir().unwrap();
+                    let full_path = current_dir.join(&name);
+
+                    log_info(&format!("Starting process from config: {}", full_path.display()));
+                    if let Err(e) = pm.start_process(&name, full_path.to_str().unwrap(), &[]) {
                         log_error(&format!("Failed to start process '{}': {}", name, e));
                     }
                 }
