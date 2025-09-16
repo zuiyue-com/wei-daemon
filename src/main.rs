@@ -108,8 +108,15 @@ use std::env;
             if processes.is_empty() {
                 log_info("No managed processes.");
             } else {
-                for (name, status) in processes {
-                    log_info(&format!("Process {}: {:?}", name, status));
+                for (name, status, start_count, policy) in processes {
+                    let policy_str = match policy {
+                        RestartPolicy::Infinite => "infinite".to_string(),
+                        RestartPolicy::Limited(max) => format!("limited ({})", max),
+                    };
+                    log_info(&format!(
+                        "Process {}: {:?} [Starts: {}, Policy: {}]",
+                        name, status, start_count, policy_str
+                    ));
                 }
             }
             log_info("==========================");

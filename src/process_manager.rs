@@ -29,7 +29,7 @@ pub struct ProcessInfo {
     pub pid: Option<u32>,
     pub child_handle: Option<Child>,
     pub restart_policy: RestartPolicy,
-    pub restart_count: u32,
+    pub start_count: u32,
 }
 
 pub struct ProcessManager {
@@ -72,7 +72,7 @@ impl ProcessManager {
                     pid,
                     child_handle: Some(child),
                     restart_policy: restart_policy.clone(),
-                    restart_count: 0,
+                    start_count: 1,
                 };
 
                 processes.insert(name_owned.clone(), process_info);
@@ -104,13 +104,11 @@ impl ProcessManager {
 
                         let should_restart = match process.restart_policy {
                             RestartPolicy::Infinite => true,
-                            RestartPolicy::Limited(max_restarts) => {
-                                process.restart_count += 1;
-                                process.restart_count < max_restarts
-                            }
+                            RestartPolicy::Limited(max_starts) => process.start_count < max_starts,
                         };
 
                         if should_restart {
+                            process.start_count += 1;
                             log_info(&format!("Restarting process '{}'...", name));
                             process.status = ProcessStatus::Stopped;
 
@@ -146,11 +144,18 @@ impl ProcessManager {
         }
     }
 
-    pub fn list_all_processes(&self) -> Vec<(String, ProcessStatus)> {
+    pub fn list_all_processes(&self) -> Vec<(String, ProcessStatus, u32, RestartPolicy)> {
         let processes = self.processes.lock().unwrap();
         processes
             .iter()
-            .map(|(name, process)| (name.clone(), process.status.clone()))
+            .map(|(name, process)| {
+                (
+                    name.clone(),
+                    process.status.clone(),
+                    process.start_count,
+                    process.restart_policy.clone(),
+                )
+            })
             .collect()
     }
 }
