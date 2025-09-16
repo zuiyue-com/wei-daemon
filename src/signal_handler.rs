@@ -20,7 +20,7 @@ pub enum SignalType {
     ConsoleClose,
     UserLogoff,
     SystemShutdown,
-    Unknown(DWORD),
+    Unknown,
 }
 
 impl SignalType {
@@ -31,7 +31,7 @@ impl SignalType {
             CTRL_CLOSE_EVENT => SignalType::ConsoleClose,
             CTRL_LOGOFF_EVENT => SignalType::UserLogoff,
             CTRL_SHUTDOWN_EVENT => SignalType::SystemShutdown,
-            _ => SignalType::Unknown(ctrl_type),
+            _ => SignalType::Unknown,
         }
     }
 
@@ -42,7 +42,7 @@ impl SignalType {
             SignalType::ConsoleClose => "控制台关闭",
             SignalType::UserLogoff => "用户注销",
             SignalType::SystemShutdown => "系统关闭",
-            SignalType::Unknown(_) => "未知信号",
+            SignalType::Unknown => "未知信号",
         }
     }
 
@@ -182,9 +182,6 @@ impl SignalHandler {
         Ok(())
     }
 
-    pub fn is_registered(&self) -> bool {
-        self.handler_registered.load(Ordering::SeqCst)
-    }
 }
 
 impl Drop for SignalHandler {
@@ -199,39 +196,3 @@ pub fn is_shutdown_requested() -> bool {
     SHUTDOWN_FLAG.load(Ordering::SeqCst)
 }
 
-pub fn is_graceful_shutdown_started() -> bool {
-    GRACEFUL_SHUTDOWN_STARTED.load(Ordering::SeqCst)
-}
-
-pub fn get_shutdown_elapsed_seconds() -> Option<u64> {
-    if !is_graceful_shutdown_started() {
-        return None;
-    }
-
-    let start_time = SHUTDOWN_START_TIME.load(Ordering::SeqCst);
-    if start_time == 0 {
-        return None;
-    }
-
-    let current_time = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
-
-    Some(current_time.saturating_sub(start_time))
-}
-
-pub fn request_shutdown() {
-    crate::log_info("程序请求关闭");
-    SHUTDOWN_FLAG.store(true, Ordering::SeqCst);
-
-    if !GRACEFUL_SHUTDOWN_STARTED.swap(true, Ordering::SeqCst) {
-        let current_time = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
-        SHUTDOWN_START_TIME.store(current_time, Ordering::SeqCst);
-
-        start_graceful_exit_monitor();
-    }
-}

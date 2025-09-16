@@ -131,29 +131,6 @@ impl ProcessManager {
         }
     }
 
-    pub fn stop_process(&self, name: &str) -> Result<(), String> {
-        let mut processes = self.processes.lock().unwrap();
-        if let Some(process) = processes.get_mut(name) {
-            if process.status == ProcessStatus::Running {
-                if let Some(child) = process.child_handle.as_mut() {
-                    match child.kill() {
-                        Ok(_) => {
-                            process.status = ProcessStatus::Stopped;
-                            Ok(())
-                        }
-                        Err(e) => Err(format!("Failed to kill process '{}': {}", name, e)),
-                    }
-                } else {
-                    Err(format!("Process '{}' has no child handle.", name))
-                }
-            } else {
-                Err(format!("Process '{}' is not running.", name))
-            }
-        } else {
-            Err(format!("Process '{}' not found.", name))
-        }
-    }
-
     pub fn list_all_processes(&self) -> Vec<(String, ProcessStatus)> {
         let processes = self.processes.lock().unwrap();
         processes

@@ -205,9 +205,6 @@ impl ExceptionHandler {
         Ok(())
     }
 
-    pub fn is_installed(&self) -> bool {
-        self.installed
-    }
 }
 
 impl Drop for ExceptionHandler {
@@ -334,16 +331,9 @@ impl ThreadRestartManager {
         self.restart_counts.get(thread_name).copied().unwrap_or(0)
     }
 
-    pub fn reset_restart_count(&mut self, thread_name: &str) {
-        self.restart_counts.remove(thread_name);
-        self.last_restart_times.remove(thread_name);
-    }
 }
 
 pub fn get_exception_count() -> u32 {
     EXCEPTION_COUNT.load(Ordering::SeqCst)
 }
 
-pub fn reset_exception_count() {
-    EXCEPTION_COUNT.store(0, Ordering::SeqCst);
-}
