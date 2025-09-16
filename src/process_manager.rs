@@ -11,8 +11,14 @@ use crate::thread_manager::ThreadManager;
 pub enum ProcessStatus {
     Running,
     Stopped,
-    Failed,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RestartPolicy {
+    Limited(u32),
+    Infinite,
+}
+
 
 #[derive(Debug)]
 pub struct ProcessInfo {
@@ -22,6 +28,8 @@ pub struct ProcessInfo {
     pub status: ProcessStatus,
     pub pid: Option<u32>,
     pub child_handle: Option<Child>,
+    pub restart_policy: RestartPolicy,
+    pub restart_count: u32,
 }
 
 pub struct ProcessManager {
@@ -37,7 +45,7 @@ impl ProcessManager {
         }
     }
 
-    pub fn start_process(&self, name: &str, command: &str, args: &[&str]) -> Result<(), String> {
+    pub fn start_process(&self, name: &str, command: &str, args: &[&str], restart_policy: RestartPolicy) -> Result<(), String> {
         let name_owned = name.to_string();
         let command_owned = command.to_string();
         let args_owned: Vec<String> = args.iter().map(|s| s.to_string()).collect();
@@ -63,16 +71,19 @@ impl ProcessManager {
                     status: ProcessStatus::Running,
                     pid,
                     child_handle: Some(child),
+                    restart_policy: restart_policy.clone(),
+                    restart_count: 0,
                 };
 
                 processes.insert(name_owned.clone(), process_info);
 
                 let arc_processes = Arc::clone(&self.processes);
-                let _ = self.thread_manager.create_thread(
+                let _ = self.thread_manager.create_thread_with_restart(
                     format!("monitor_{}", name_owned),
                     move |_| {
                         Self::monitor_process(arc_processes, name_owned);
                     },
+                    matches!(restart_policy, RestartPolicy::Infinite),
                 );
 
                 Ok(())
@@ -88,9 +99,19 @@ impl ProcessManager {
 
             if let Some(process) = processes_lock.get_mut(&name) {
                 if let Some(child) = &mut process.child_handle {
-                    match child.try_wait() {
-                        Ok(Some(status)) => {
-                            log_info(&format!("Process '{}' exited with status: {}. Restarting...", name, status));
+                    if let Ok(Some(status)) = child.try_wait() {
+                        log_info(&format!("Process '{}' exited with status: {}.", name, status));
+
+                        let should_restart = match process.restart_policy {
+                            RestartPolicy::Infinite => true,
+                            RestartPolicy::Limited(max_restarts) => {
+                                process.restart_count += 1;
+                                process.restart_count < max_restarts
+                            }
+                        };
+
+                        if should_restart {
+                            log_info(&format!("Restarting process '{}'...", name));
                             process.status = ProcessStatus::Stopped;
 
                             let command = process.command.clone();
@@ -100,9 +121,6 @@ impl ProcessManager {
                             drop(processes_lock);
 
                             let args_str: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
-                            // Simplified restart logic directly in the monitor thread.
-                            // NOTE: This is a simplistic restart. For a more robust solution,
-                            // you might want to signal the main loop to handle the restart.
                             let mut new_cmd = Command::new(&command);
                             new_cmd.args(&args_str);
                             if let Ok(new_child) = new_cmd.spawn() {
@@ -113,12 +131,9 @@ impl ProcessManager {
                                     restarted_process.status = ProcessStatus::Running;
                                 }
                             }
-                            // No break, continue monitoring the new process.
-                        }
-                        Ok(None) => {}
-                        Err(e) => {
-                            log_info(&format!("Error waiting for process '{}': {}", name, e));
-                            process.status = ProcessStatus::Failed;
+                        } else {
+                            log_info(&format!("Process '{}' reached max restarts.", name));
+                            process.status = ProcessStatus::Stopped;
                             break;
                         }
                     }

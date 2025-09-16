@@ -12,7 +12,7 @@ mod signal_handler;
 use signal_handler::SignalHandler;
 
 mod process_manager;
-use process_manager::ProcessManager;
+use process_manager::{ProcessManager, RestartPolicy};
 use std::sync::Arc;
 
 mod exception_handler;
@@ -64,12 +64,22 @@ fn daemon_main_loop() {
                     let pm = Arc::clone(&process_manager);
 use std::env;
 
-                    let name = process_name.trim().to_string();
+                    let parts: Vec<&str> = process_name.trim().splitn(2, ' ').collect();
+                    let name = parts[0].to_string();
+                    let policy = if parts.len() > 1 {
+                        match parts[1].parse::<u32>() {
+                            Ok(count) => RestartPolicy::Limited(count),
+                            Err(_) => RestartPolicy::Infinite,
+                        }
+                    } else {
+                        RestartPolicy::Infinite
+                    };
+
                     let current_dir = env::current_dir().unwrap();
                     let full_path = current_dir.join(&name);
 
-                    log_info(&format!("Starting process from config: {}", full_path.display()));
-                    if let Err(e) = pm.start_process(&name, full_path.to_str().unwrap(), &[]) {
+                    log_info(&format!("Starting process from config: {} with policy {:?}", full_path.display(), policy));
+                    if let Err(e) = pm.start_process(&name, full_path.to_str().unwrap(), &[], policy) {
                         log_error(&format!("Failed to start process '{}': {}", name, e));
                     }
                 }

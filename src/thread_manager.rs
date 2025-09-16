@@ -69,13 +69,6 @@ impl ThreadManager {
         self
     }
 
-    pub fn create_thread<F>(&self, name: String, work_fn: F) -> Result<u64, String>
-    where
-        F: FnOnce(Arc<AtomicBool>) + Send + 'static + std::panic::UnwindSafe + Clone,
-    {
-        self.create_thread_with_restart(name, work_fn, true)
-    }
-
     pub fn create_thread_with_restart<F>(&self, name: String, work_fn: F, enable_restart: bool) -> Result<u64, String>
     where
         F: FnOnce(Arc<AtomicBool>) + Send + 'static + std::panic::UnwindSafe + Clone,
