@@ -22,6 +22,7 @@ wei-run = "0.3.1"
 wei-env = "0.2.13"
 wei-log = "0.2.10"
 wei-single = "0.3.6"
+wei-tray = { path = "../wei-tray" }
 serde_yaml = "0.9"
 tokio = { version = "1.28.1", features = ["full"] }
 winapi = { version = "0.3.9", features = ["winuser", "wincon", "tlhelp32", "handleapi", "consoleapi", "processthreadsapi", "errhandlingapi", "minwinbase", "winnt"] }

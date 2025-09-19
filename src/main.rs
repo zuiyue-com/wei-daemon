@@ -4,6 +4,7 @@ use std::path::Path;
 use std::thread;
 use std::time::Duration;
 use tokio;
+use wei_tray;
 
 mod thread_manager;
 use thread_manager::ThreadManager;
@@ -141,6 +142,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         log_error(&format!("Initialization failed: {}", e));
         return Err(e);
     }
+
+    // Start tray in a separate thread to avoid blocking daemon functionality
+    thread::spawn(|| {
+        if let Err(e) = wei_tray::start() {
+            log_error(&format!("Tray failed to start: {}", e));
+        }
+    });
+
     daemon_main_loop();
     cleanup_and_shutdown();
     log_info("Wei Daemon has shut down gracefully");
